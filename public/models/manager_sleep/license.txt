@@ -1,0 +1,11 @@
+Model Information:
+* title:	Isabelle - animal crossing
+* source:	https://sketchfab.com/3d-models/isabelle-animal-crossing-f0e389f2c22e4da1a79de48886b513b2
+* author:	Xetrev (https://sketchfab.com/Strummm)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Isabelle - animal crossing" (https://sketchfab.com/3d-models/isabelle-animal-crossing-f0e389f2c22e4da1a79de48886b513b2) by Xetrev (https://sketchfab.com/Strummm) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

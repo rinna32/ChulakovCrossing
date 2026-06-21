@@ -11,6 +11,9 @@ export interface CharacterPlacement {
   // Поэтому вместо ручного scale мы указываем ЖЕЛАЕМЫЙ РОСТ персонажа в метрах,
   // а реальный scale считаем автоматически по bounding box модели после загрузки.
   targetHeight: number
+  // Проигрывать ли встроенную анимацию модели. По умолчанию выключено:
+  // у статичных персонажей анимацию (даже если она есть в файле) не запускаем.
+  animated?: boolean
   name?: string // для console.log при дебаге
 }
 
@@ -18,6 +21,9 @@ export interface CharacterPlacement {
 export class Character {
   public object: THREE.Object3D = new THREE.Group()
   public placement: CharacterPlacement
+  // Проигрыватель анимаций. Появляется только если в модели есть анимации
+  // (у статичных моделей остаётся null).
+  public mixer: THREE.AnimationMixer | null = null
 
   constructor(placement: CharacterPlacement) {
     this.placement = placement
@@ -49,13 +55,28 @@ export class Character {
       }
     })
 
+    // Запускаем анимацию ТОЛЬКО если она явно включена флагом animated.
+    // Так у статичных моделей (даже если в файле есть клип) анимация не играет.
+    if (this.placement.animated && gltf.animations.length > 0) {
+      this.mixer = new THREE.AnimationMixer(model)
+      for (const clip of gltf.animations) {
+        this.mixer.clipAction(clip).play()
+      }
+    }
+
     console.log(
       `[Character] ${this.placement.name ?? this.placement.url} — raw size:`,
       `x=${rawSize.x.toFixed(2)} y=${rawSize.y.toFixed(2)} z=${rawSize.z.toFixed(2)}`,
-      `→ scale=${scale.toFixed(4)} (рост ${this.placement.targetHeight}м)`
+      `→ scale=${scale.toFixed(4)} (рост ${this.placement.targetHeight}м)`,
+      this.mixer ? `· анимация включена` : ''
     )
 
     this.object = model
     return model
+  }
+
+  // Обновляет анимацию персонажа. Вызывать каждый кадр с delta-time (в секундах).
+  update(delta: number) {
+    this.mixer?.update(delta)
   }
 }

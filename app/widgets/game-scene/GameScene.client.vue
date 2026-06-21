@@ -33,6 +33,9 @@ const ROOM_MAX_Z = 9 // передняя стена (вход)
 // итоговый рост совпал с этим числом, независимо от исходных единиц модели.
 const PLAYER_HEIGHT = 1.75
 const NPC_HEIGHT = 1.75
+// Высота модели "менеджер спит за столом" (это композиция стол+персонаж, а не рост человека),
+// поэтому масштабируем её отдельно. Подберите число, если стол слишком мелкий/крупный.
+const MANAGER_DESK_HEIGHT = 2.2
 
 // Позиция игрока при старте игры [x, y, z], в метрах
 const PLAYER_START_POSITION: THREE.Vector3Tuple = [0, 0, 7]
@@ -43,11 +46,14 @@ const PLAYER_START_ROTATION = Math.PI
 // x — влево(−)/вправо(+), z — вперёд к камере(+) / вглубь офиса(−).
 const NPC_PLACEMENTS: CharacterPlacement[] = [
   {
-    name: 'HR',
-    url: '/models/HR/scene.gltf',
-    position: [-5.1, 0, -3.9], // на стойке ресепшена
-    rotationY: 0, // лицом к лобби/игроку
-    targetHeight: NPC_HEIGHT,
+    // Стол "менеджер спит за столом" — стоит там, где был игрок (рядом с левой стеной),
+    // и заменяет собой персонажа, который тут стоял
+    name: 'Manager (спит за столом)',
+    url: '/models/manager_sleep/scene.gltf',
+    position: [-7.7, 0, 5.7], // место, где стоял гг
+    rotationY: Math.PI / 2, // спиной к левой стене (−X), лицом в комнату (+X) — как стоял гг
+    targetHeight: MANAGER_DESK_HEIGHT,
+    animated: true, // единственная модель с включённой анимацией (сон)
   },
   {
     name: 'LeadFrontend',
@@ -57,10 +63,11 @@ const NPC_PLACEMENTS: CharacterPlacement[] = [
     targetHeight: NPC_HEIGHT,
   },
   {
+    // Вернули обычную модель менеджера на место, где раньше был стол
     name: 'Manager',
     url: '/models/Manager/scene.gltf',
-    position: [-6.7, 0, 3.3], // в открытом пространстве перед стойкой
-    rotationY: 0, // лицом к игроку
+    position: [-5.1, 0, -3.9],
+    rotationY: 0, // лицом к лобби/игроку
     targetHeight: NPC_HEIGHT,
   },
 ]
@@ -152,11 +159,16 @@ onMounted(async () => {
   await player.load()
   scene.add(player.object)
 
+  // Персонажи с анимацией — их миксеры нужно обновлять каждый кадр
+  const animatedCharacters: Character[] = []
+  if (player.mixer) animatedCharacters.push(player)
+
   // ── NPC ──
   for (const placement of NPC_PLACEMENTS) {
     const npc = new Character(placement)
     await npc.load()
     scene.add(npc.object)
+    if (npc.mixer) animatedCharacters.push(npc)
   }
 
   // ── Управление игроком + орбитальная камера (мышь) + границы + коллизия камеры об офис ──
@@ -176,8 +188,13 @@ onMounted(async () => {
     // getDelta() может вернуть большой скачок, из-за которого игрок/камера дёрнутся
     const delta = Math.min(clock.getDelta(), 0.1)
     playerMovement?.update(delta)
-    // Обновляем индикатор координат игрока (временный помощник для расстановки NPC)
-    playerCoords.value = `x: ${player.object.position.x.toFixed(1)}  z: ${player.object.position.z.toFixed(1)}`
+    // Проигрываем анимации персонажей (например, "менеджер спит")
+    for (const character of animatedCharacters) character.update(delta)
+    // Обновляем индикатор координат и поворота игрока (временный помощник для расстановки NPC).
+    // Поворот показываем в градусах; в коде rotationY задаётся в радианах (рад = град × π / 180).
+    const deg = Math.round((player.object.rotation.y * 180) / Math.PI)
+    playerCoords.value =
+      `x: ${player.object.position.x.toFixed(1)}  z: ${player.object.position.z.toFixed(1)}  поворот: ${deg}°`
     renderer?.render(scene, camera)
     animationFrameId = requestAnimationFrame(animate)
   }
