@@ -1,0 +1,11 @@
+Model Information:
+* title:	ALLMIND - オールマインド
+* source:	https://sketchfab.com/3d-models/allmind-0c89db0b28ef404dae8629b27135b419
+* author:	OSad (https://sketchfab.com/osad)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "ALLMIND - オールマインド" (https://sketchfab.com/3d-models/allmind-0c89db0b28ef404dae8629b27135b419) by OSad (https://sketchfab.com/osad) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

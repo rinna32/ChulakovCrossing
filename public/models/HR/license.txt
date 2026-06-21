@@ -1,0 +1,11 @@
+Model Information:
+* title:	Isabelle Rig
+* source:	https://sketchfab.com/3d-models/isabelle-rig-8bd86cc22460404aa0437f97d6b06a6c
+* author:	CLfanmodel (https://sketchfab.com/jamescontreras2001)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Isabelle Rig" (https://sketchfab.com/3d-models/isabelle-rig-8bd86cc22460404aa0437f97d6b06a6c) by CLfanmodel (https://sketchfab.com/jamescontreras2001) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
