@@ -104,7 +104,7 @@ function pick(answer: MissionAnswer) {
         <p class="m-0 mb-5 text-[17px] leading-[1.6] font-semibold">{{ currentQuestion?.question }}</p>
         <div class="flex flex-col gap-2.5">
           <button
-            v-for="(answer, i) in currentQuestion?.answers ?? []"
+            v-for="(answer, i) in shuffledAnswers"
             :key="i"
             class="text-left px-4 py-3.5 border border-line rounded-[14px] bg-white text-ink text-base cursor-pointer transition-colors hover:border-ink hover:bg-surface"
             @click="pick(answer)"
