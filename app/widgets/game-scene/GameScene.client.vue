@@ -374,12 +374,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <canvas ref="canvasRef" class="game-canvas" />
+  <canvas ref="canvasRef" class="block fixed top-0 left-0 w-full h-full" />
   <!-- Подсказка по управлению -->
-  <div class="hint-hud">WASD / стрелки — ходьба · зажмите мышь и двигайте — поворот камеры</div>
+  <div
+    class="fixed left-16 top-3.5 px-4 py-[9px] text-[13px] text-ink bg-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.12)] pointer-events-none"
+  >
+    WASD / стрелки — ходьба · зажмите мышь и двигайте — поворот камеры
+  </div>
 
-  <!-- Цель: к кому идти, или сообщение о завершении -->
-  <div class="objective-hud">
+  <!-- Цель: к кому идти, или сообщение о завершении (чёрная «таблетка»-акцент) — справа -->
+  <div
+    class="fixed top-3.5 right-3.5 max-w-[55vw] px-[18px] py-[9px] text-sm font-medium text-white bg-ink rounded-full text-center shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-none"
+  >
     <template v-if="!allMissionsDone && activeMission">
       Задание {{ currentMissionIndex + 1 }}/{{ MISSIONS.length }}: поговори с
       «{{ activeMission.npcName }}» — {{ activeMission.npcRole }} ({{ activeMission.value }})
@@ -393,8 +399,11 @@ onUnmounted(() => {
   </div>
 
   <!-- Подсказка «нажми E», когда игрок рядом с нужным NPC -->
-  <div v-if="canInteract && !dialogueOpen" class="interact-hud">
-    Нажми <b>E</b>, чтобы поговорить
+  <div
+    v-if="canInteract && !dialogueOpen"
+    class="fixed bottom-16 left-1/2 -translate-x-1/2 px-5 py-2.5 text-[15px] text-ink bg-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.16)] pointer-events-none"
+  >
+    Нажми <b class="font-bold">E</b>, чтобы поговорить
   </div>
 
   <!-- Диалог (миссия или финал) -->
@@ -408,77 +417,9 @@ onUnmounted(() => {
   />
 
   <!-- Временный индикатор координат игрока для расстановки NPC -->
-  <div class="coords-hud">{{ playerCoords }}</div>
+  <div
+    class="fixed left-3 bottom-3 px-3 py-[7px] text-[13px] text-muted bg-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.12)] pointer-events-none"
+  >
+    {{ playerCoords }}
+  </div>
 </template>
-
-<style scoped>
-.game-canvas {
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.coords-hud {
-  position: fixed;
-  left: 12px;
-  bottom: 12px;
-  padding: 6px 10px;
-  font-family: monospace;
-  font-size: 14px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 6px;
-  pointer-events: none;
-}
-
-.hint-hud {
-  position: fixed;
-  left: 64px; /* правее кнопки «домой» */
-  top: 12px;
-  padding: 6px 10px;
-  font-family: sans-serif;
-  font-size: 13px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 6px;
-  pointer-events: none;
-}
-
-.objective-hud {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 90vw;
-  padding: 8px 14px;
-  font-family: sans-serif;
-  font-size: 14px;
-  color: #fff;
-  background: rgba(20, 20, 20, 0.7);
-  border: 1px solid rgba(243, 167, 18, 0.6);
-  border-radius: 8px;
-  text-align: center;
-  pointer-events: none;
-}
-
-.interact-hud {
-  position: fixed;
-  bottom: 64px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 16px;
-  font-family: sans-serif;
-  font-size: 15px;
-  color: #fff;
-  background: rgba(20, 20, 20, 0.75);
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.interact-hud b {
-  color: #f3a712;
-}
-</style>

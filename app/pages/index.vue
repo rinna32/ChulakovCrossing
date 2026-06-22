@@ -1,85 +1,34 @@
 <script setup lang="ts">
-// Главный экран (меню) с двумя кнопками:
+// Главный экран (меню) в стиле сайта chulakov.ru: белый фон, крупная типографика, ч/б.
 //  • «Играть» — ведёт на игровую сцену (/game)
 //  • «Вторая страница» — ведёт на пустую страницу (/page2), её оформишь сама
 </script>
 
 <template>
-  <div class="menu">
-    <div class="menu__card">
-      <h1 class="menu__title">Chulakov</h1>
-      <p class="menu__subtitle">Онбординг-игра для стажёра</p>
+  <div
+    class="relative min-h-screen box-border flex flex-col justify-center bg-bg py-10 px-[clamp(24px,6vw,96px)]"
+  >
+    <div class="absolute top-9 left-[clamp(24px,6vw,96px)] text-xl font-bold tracking-[2px]">
+      CHULAKOV CROSSING
+    </div>
 
-      <div class="menu__buttons">
-        <NuxtLink to="/game" class="menu__btn menu__btn--primary">Играть</NuxtLink>
-        <NuxtLink to="/page2" class="menu__btn">Вторая страница</NuxtLink>
+    <div>
+      <h1 class="m-0 font-bold leading-[0.98] tracking-[-0.02em] text-[clamp(44px,8vw,104px)]">
+        Онбординг-игра<br />для стажёра
+      </h1>
+      <p
+        class="mt-6 mb-10 max-w-[520px] text-muted leading-[1.5] text-[clamp(16px,2vw,20px)]"
+      >
+        Познакомься с командой студии и пройди тесты о её ценностях:
+        ответственность, прозрачность и скорость.
+      </p>
+
+      <div class="flex flex-wrap gap-[14px]">
+        <NuxtLink to="/game" class="btn btn--primary">
+          Играть <span class="btn__arrow">→</span>
+        </NuxtLink>
+        <NuxtLink to="/page2" class="btn btn--ghost">Вторая страница</NuxtLink>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.menu {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  font-family: sans-serif;
-  /* Тёмный фон под цвет игры */
-  background: radial-gradient(circle at 50% 30%, #2a2f3a 0%, #14171d 70%);
-}
-
-.menu__card {
-  text-align: center;
-  color: #fff;
-}
-
-.menu__title {
-  margin: 0;
-  font-size: 56px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.menu__subtitle {
-  margin: 8px 0 36px;
-  font-size: 18px;
-  color: #b9c0cc;
-}
-
-.menu__buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 280px;
-  margin: 0 auto;
-}
-
-.menu__btn {
-  display: block;
-  padding: 14px 20px;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  text-decoration: none;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  transition: transform 0.08s ease, background 0.15s ease;
-}
-
-.menu__btn:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.menu__btn--primary {
-  background: #f3a712;
-  color: #3a2700;
-  border-color: transparent;
-}
-
-.menu__btn--primary:hover {
-  background: #ffb929;
-}
-</style>

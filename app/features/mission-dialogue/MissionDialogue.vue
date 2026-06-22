@@ -27,6 +27,13 @@ const wrong = ref(false)
 // Текущий вопрос
 const currentQuestion = computed(() => props.mission.questions[questionIndex.value])
 
+// Варианты ответа в перемешанном порядке (в данных правильный всегда первый —
+// тасуем, чтобы его нельзя было угадать по позиции). computed зависит только от
+// currentQuestion, поэтому порядок стабилен, пока показан один и тот же вопрос.
+const shuffledAnswers = computed(() =>
+  [...(currentQuestion.value?.answers ?? [])].sort(() => Math.random() - 0.5)
+)
+
 // Есть ли вообще тест (у эпилога вопросов нет)
 const hasQuestions = computed(() => props.mission.questions.length > 0)
 
@@ -64,155 +71,57 @@ function pick(answer: MissionAnswer) {
 
 <template>
   <!-- Затемнённый фон перекрывает сцену и ловит клики, чтобы они не уходили в канвас -->
-  <div class="dialogue-backdrop">
-    <div class="dialogue-panel">
-      <div class="dialogue-head">
-        <span class="dialogue-badge">{{ badge }}</span>
-        <button class="dialogue-close" aria-label="Закрыть" @click="emit('close')">✕</button>
+  <div class="fixed inset-0 z-20 flex items-end justify-center px-4 pb-10 bg-black/40">
+    <div
+      class="w-full max-w-[560px] bg-white text-ink rounded-card px-7 py-[26px] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+    >
+      <div class="flex items-center justify-between mb-3.5">
+        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{{ badge }}</span>
+        <button
+          class="border-0 bg-transparent text-[18px] leading-none text-muted cursor-pointer"
+          aria-label="Закрыть"
+          @click="emit('close')"
+        >
+          ✕
+        </button>
       </div>
 
-      <p class="dialogue-npc">{{ mission.npcName }} · {{ mission.npcRole }}</p>
+      <p class="m-0 mb-2.5 font-bold text-[17px]">{{ mission.npcName }} · {{ mission.npcRole }}</p>
 
       <!-- Этап 1: реплики до вопроса -->
       <template v-if="phase === 'intro'">
-        <p class="dialogue-text">{{ mission.intro[introIndex] }}</p>
-        <button class="dialogue-primary" @click="nextIntro()">Далее</button>
+        <p class="m-0 mb-5 text-[17px] leading-[1.6]">{{ mission.intro[introIndex] }}</p>
+        <button class="btn btn--primary mt-1.5" @click="nextIntro()">
+          Далее <span class="btn__arrow">→</span>
+        </button>
       </template>
 
       <!-- Этап 2: вопросы с вариантами ответа -->
       <template v-else-if="phase === 'question'">
-        <p class="dialogue-progress">Вопрос {{ questionIndex + 1 }}/{{ mission.questions.length }}</p>
-        <p class="dialogue-text dialogue-question">{{ currentQuestion.question }}</p>
-        <div class="dialogue-answers">
+        <p class="m-0 mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+          Вопрос {{ questionIndex + 1 }}/{{ mission.questions.length }}
+        </p>
+        <p class="m-0 mb-5 text-[17px] leading-[1.6] font-semibold">{{ currentQuestion?.question }}</p>
+        <div class="flex flex-col gap-2.5">
           <button
-            v-for="(answer, i) in currentQuestion.answers"
+            v-for="(answer, i) in currentQuestion?.answers ?? []"
             :key="i"
-            class="dialogue-answer"
+            class="text-left px-4 py-3.5 border border-line rounded-[14px] bg-white text-ink text-base cursor-pointer transition-colors hover:border-ink hover:bg-surface"
             @click="pick(answer)"
           >
             {{ answer.text }}
           </button>
         </div>
-        <p v-if="wrong" class="dialogue-hint">Не совсем — подумай ещё раз.</p>
+        <p v-if="wrong" class="mt-3 text-[#c0392b] text-[15px]">Не совсем — подумай ещё раз.</p>
       </template>
 
       <!-- Этап 3: итог после верного ответа -->
       <template v-else>
-        <p class="dialogue-text">{{ mission.success }}</p>
-        <button class="dialogue-primary" @click="emit('completed')">Готово</button>
+        <p class="m-0 mb-5 text-[17px] leading-[1.6]">{{ mission.success }}</p>
+        <button class="btn btn--primary mt-1.5" @click="emit('completed')">
+          Готово <span class="btn__arrow">→</span>
+        </button>
       </template>
     </div>
   </div>
 </template>
-
-<style scoped>
-.dialogue-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 16px 40px;
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.dialogue-panel {
-  width: 100%;
-  max-width: 560px;
-  background: #fffdf7;
-  color: #2b2b2b;
-  border-radius: 16px;
-  padding: 20px 22px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  font-family: sans-serif;
-}
-
-.dialogue-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.dialogue-badge {
-  font-size: 13px;
-  font-weight: 600;
-  color: #b06a00;
-  background: #fff0d6;
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.dialogue-close {
-  border: none;
-  background: transparent;
-  font-size: 18px;
-  line-height: 1;
-  color: #888;
-  cursor: pointer;
-}
-
-.dialogue-npc {
-  margin: 0 0 6px;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.dialogue-text {
-  margin: 0 0 16px;
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-.dialogue-progress {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #b06a00;
-}
-
-.dialogue-question {
-  font-weight: 600;
-}
-
-.dialogue-answers {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dialogue-answer {
-  text-align: left;
-  padding: 12px 14px;
-  border: 1px solid #e2d8c4;
-  border-radius: 10px;
-  background: #fff;
-  color: #2b2b2b;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.dialogue-answer:hover {
-  border-color: #f3a712;
-  background: #fff8ec;
-}
-
-.dialogue-primary {
-  margin-top: 4px;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 10px;
-  background: #f3a712;
-  color: #3a2700;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.dialogue-hint {
-  margin: 10px 0 0;
-  color: #c0392b;
-  font-size: 14px;
-}
-</style>

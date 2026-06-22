@@ -2,6 +2,10 @@
 // Виджет лежит в app/widgets, а не в app/components, поэтому Nuxt не подхватит его
 // автоматически — импортируем явно.
 import GameScene from '~/widgets/game-scene/GameScene.client.vue'
+import GameIntroModal from '~/features/game-intro/GameIntroModal.vue'
+
+// Приветственная модалка с правилами — показывается при каждом заходе на страницу игры
+const showIntro = ref(true)
 
 // .client.vue компонент рендерится только в браузере — на сервере его вообще не существует,
 // поэтому отдельный ssr:false здесь не обязателен, но не помешает для надёжности
@@ -17,31 +21,14 @@ useHead({
 
 <template>
   <GameScene />
-  <!-- Кнопка возврата в главное меню -->
-  <NuxtLink to="/" class="home-btn" aria-label="На главную">←</NuxtLink>
+  <!-- Кнопка возврата в меню: круглая со стрелкой — фирменный элемент сайта Chulakov -->
+  <NuxtLink
+    to="/"
+    aria-label="На главную"
+    class="fixed top-3.5 left-3.5 z-[15] flex h-11 w-11 items-center justify-center rounded-full bg-white text-[20px] text-ink no-underline shadow-[0_2px_12px_rgba(0,0,0,0.16)] transition-colors hover:bg-ink hover:text-white"
+  >
+    ←
+  </NuxtLink>
+  <!-- Приветствие и правила при заходе в игру -->
+  <GameIntroModal v-if="showIntro" @start="showIntro = false" />
 </template>
-
-<style scoped>
-.home-btn {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 15;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-family: sans-serif;
-  color: #fff;
-  text-decoration: none;
-  background: rgba(20, 20, 20, 0.6);
-  border-radius: 10px;
-}
-
-.home-btn:hover {
-  background: rgba(243, 167, 18, 0.85);
-  color: #3a2700;
-}
-</style>

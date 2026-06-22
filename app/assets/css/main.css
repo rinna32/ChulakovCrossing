@@ -1,14 +1,73 @@
-/* Глобальные стили приложения */
+/* Глобальные стили приложения — в стиле сайта chulakov.ru:
+   белый фон, почти-чёрный текст, крупная типографика, минимализм, ч/б. */
 
-/* Сбрасываем стандартный отступ body (8px). Тёмный фон — чтобы при загрузке
-   по краям не мелькало белое. Прокрутку НЕ отключаем глобально: она нужна
-   обычным страницам. На игровой странице её выключает сам игровой экран. */
+:root {
+  --c-bg: #ffffff; /* фон */
+  --c-ink: #151515; /* основной текст (как на сайте) */
+  --c-muted: #8a8a8a; /* вторичный текст */
+  --c-line: #e7e4df; /* тонкие границы */
+  --c-surface: #f4f2ee; /* тёплый светлый фон-подложка */
+  --radius: 20px; /* скругление карточек */
+}
+
 body {
   margin: 0;
-  background: #000;
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Класс для страниц без прокрутки (игра) — вешается через useHead на нужной странице */
 body.no-scroll {
   overflow: hidden;
+}
+
+/* ── Переиспользуемые элементы в стиле Chulakov ── */
+
+/* Кнопка-«таблетка». Основная — чёрная заливка, вторичная — обводка */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn--primary {
+  background: var(--c-ink);
+  color: #fff;
+}
+.btn--primary:hover {
+  background: #000;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--c-ink);
+  border-color: var(--c-line);
+}
+.btn--ghost:hover {
+  border-color: var(--c-ink);
+}
+
+/* Стрелка → как фирменный элемент сайта */
+.btn__arrow {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Белая карточка с крупным скруглением */
+.card {
+  background: #fff;
+  border-radius: var(--radius);
 }
