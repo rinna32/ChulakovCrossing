@@ -25,7 +25,7 @@ useHead({
   <NuxtLink
     to="/"
     aria-label="На главную"
-    class="fixed top-3.5 left-3.5 z-[15] flex h-11 w-11 items-center justify-center rounded-full bg-white text-[20px] text-ink no-underline shadow-[0_2px_12px_rgba(0,0,0,0.16)] transition-colors hover:bg-ink hover:text-white"
+    class="bg-white text-black hover:bg-yellow-300 border border-black hover:border-transparent transition-colors duration-300 font-medium fixed top-3.5 left-3.5 z-[15] flex h-11 w-11 items-center justify-center rounded-full text-[20px] text-ink no-underline shadow-[0_2px_12px_rgba(0,0,0,0.16)] hover:bg-ink hover:text-white"
   >
     ←
   </NuxtLink>

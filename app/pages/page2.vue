@@ -5,8 +5,8 @@ definePageMeta({ layout: 'main' })
 </script>
 
 <template>
-  <NuxtLink to="/" class="btn btn--ghost">
-    <span class="btn__arrow">←</span> В меню
+  <NuxtLink to="/" class="btn btn--ghost bg-white text-black hover:bg-yellow-300 border border-black hover:border-transparent transition-colors duration-300 px-6 py-2 rounded-full font-medium">
+    <span class="btn__arrow ">←</span> В меню
   </NuxtLink>
   <!-- Контент добавляй здесь -->
 </template>

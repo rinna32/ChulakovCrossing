@@ -6,8 +6,7 @@
 
 <template>
   <div
-    class="relative min-h-screen box-border flex flex-col justify-center bg-bg py-10 px-[clamp(24px,6vw,96px)]"
-  >
+    class="relative min-h-screen box-border flex flex-col justify-center bg-bg py-10 px-[clamp(24px,6vw,96px)]">
     <div class="absolute top-9 left-[clamp(24px,6vw,96px)] text-xl font-bold tracking-[2px]">
       CHULAKOV CROSSING
     </div>
@@ -27,7 +26,7 @@
         <NuxtLink to="/game" class="btn btn--primary">
           Играть <span class="btn__arrow">→</span>
         </NuxtLink>
-        <NuxtLink to="/page2" class="btn btn--ghost">Вторая страница</NuxtLink>
+        <NuxtLink to="/page2" class=" btn btn--ghost bg-white text-black hover:bg-yellow-300 border border-black hover:border-transparent transition-colors duration-300 px-6 py-2 rounded-full font-medium">Вторая страница</NuxtLink>
       </div>
     </div>
   </div>

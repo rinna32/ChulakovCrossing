@@ -384,7 +384,7 @@ onUnmounted(() => {
 
   <!-- Цель: к кому идти, или сообщение о завершении (чёрная «таблетка»-акцент) — справа -->
   <div
-    class="fixed top-3.5 right-3.5 max-w-[55vw] px-[18px] py-[9px] text-sm font-medium text-white bg-ink rounded-full text-center shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-none"
+    class="fixed top-3.5 right-3.5 max-w-[55vw] px-[18px] py-[9px] text-sm font-medium text-black bg-white rounded-full text-center shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-none"
   >
     <template v-if="!allMissionsDone && activeMission">
       Задание {{ currentMissionIndex + 1 }}/{{ MISSIONS.length }}: поговори с
