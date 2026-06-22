@@ -85,11 +85,6 @@ const INTERACTION_RADIUS = 2.8
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-// Временный индикатор координат игрока (для удобной расстановки NPC).
-// Подойдите героем к нужной точке и считайте x/z внизу экрана — это и есть
-// значения для position в NPC_PLACEMENTS. Когда расстановка готова, блок можно удалить.
-const playerCoords = ref('x: 0.0  z: 0.0')
-
 // ── Состояние миссий ──
 const currentMissionIndex = ref(0) // какая миссия сейчас активна (0..MISSIONS.length)
 const epilogueDone = ref(false) // пройден ли финальный диалог у менеджера
@@ -330,11 +325,6 @@ onMounted(async () => {
       canInteract.value = false
     }
 
-    // Обновляем индикатор координат и поворота игрока (временный помощник для расстановки NPC).
-    // Поворот показываем в градусах; в коде rotationY задаётся в радианах (рад = град × π / 180).
-    const deg = Math.round((player.object.rotation.y * 180) / Math.PI)
-    playerCoords.value =
-      `x: ${player.object.position.x.toFixed(1)}  z: ${player.object.position.z.toFixed(1)}  поворот: ${deg}°`
     renderer?.render(scene, camera)
     animationFrameId = requestAnimationFrame(animate)
   }
@@ -416,10 +406,4 @@ onUnmounted(() => {
     @close="handleDialogueClose"
   />
 
-  <!-- Временный индикатор координат игрока для расстановки NPC -->
-  <div
-    class="fixed left-3 bottom-3 px-3 py-[7px] text-[13px] text-muted bg-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.12)] pointer-events-none"
-  >
-    {{ playerCoords }}
-  </div>
 </template>
