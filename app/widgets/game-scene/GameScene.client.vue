@@ -9,87 +9,64 @@ import { MISSIONS, EPILOGUE_MISSION } from '~/entities/mission/missions'
 import { makeLabelSprite } from '~/shared/lib/three/makeLabelSprite'
 import MissionDialogue from '~/features/mission-dialogue/MissionDialogue.vue'
 
-// ─────────────────────────────────────────────────────────────
-// КОНСТАНТЫ — двигайте эти числа, чтобы расставить модели по-другому
-// ─────────────────────────────────────────────────────────────
+// ── Константы сцены: меняй, чтобы переставить модели ──
 
-// Путь к модели офиса (локация)
 const OFFICE_URL = '/models/office/scene.gltf'
+const OFFICE_TARGET_WIDTH = 24 // ширина офиса в метрах (масштаб считается сам)
 
-// Желаемая ширина офиса в метрах (по самой длинной горизонтальной стороне).
-// Модель офиса может быть нарисована в каких угодно "сырых" единицах —
-// мы автоматически считаем коэффициент масштаба, чтобы офис стал именно такого размера.
-const OFFICE_TARGET_WIDTH = 24
+// Границы комнаты в мировых координатах — за них не выпускаем героя и камеру.
+// Офис открыт с части сторон, поэтому прямоугольник задаём вручную.
+const ROOM_MIN_X = -8
+const ROOM_MAX_X = 8
+const ROOM_MIN_Z = -4.5
+const ROOM_MAX_Z = 9
 
-// Границы комнаты (мировые координаты), за которые НЕ выпускаем героя и камеру.
-// Офис открыт с некоторых сторон (это "диорама"), поэтому авто-границы по
-// bounding box не годятся — задаём прямоугольник вручную.
-// КАК НАСТРОИТЬ: подойдите героем вплотную к каждой стене, посмотрите x/z на
-// индикаторе внизу слева и впишите эти значения сюда.
-const ROOM_MIN_X = -8 // левая стена
-const ROOM_MAX_X = 8 // правая стена
-const ROOM_MIN_Z = -4.5 // задняя стена / стойка (дальше герой не зайдёт)
-const ROOM_MAX_Z = 9 // передняя стена (вход)
-
-// Рост персонажей в метрах. У каждой модели (игрок, HR, LeadFrontend, Manager)
-// свой "сырой" масштаб экспорта — Character сам подбирает scale так, чтобы
-// итоговый рост совпал с этим числом, независимо от исходных единиц модели.
+// Рост персонажей в метрах (Character сам подбирает scale под это число)
 const PLAYER_HEIGHT = 1.75
 const NPC_HEIGHT = 1.75
-// Высота модели "менеджер спит за столом" (это композиция стол+персонаж, а не рост человека),
-// поэтому масштабируем её отдельно. Подберите число, если стол слишком мелкий/крупный.
-const MANAGER_DESK_HEIGHT = 2.2
+const MANAGER_DESK_HEIGHT = 2.2 // это композиция «стол + спящий», а не рост
 
-// Позиция игрока при старте игры [x, y, z], в метрах
 const PLAYER_START_POSITION: THREE.Vector3Tuple = [0, 0, 5.8]
-// Поворот игрока при старте (рад). Math.PI = лицом вглубь офиса (−Z, к стойке и NPC)
-const PLAYER_START_ROTATION = Math.PI
+const PLAYER_START_ROTATION = Math.PI // лицом вглубь офиса
 
-// Список NPC: путь к модели, позиция (метры) и поворот (рад).
-// x — влево(−)/вправо(+), z — вперёд к камере(+) / вглубь офиса(−).
+// x — влево(−)/вправо(+), z — к камере(+) / вглубь офиса(−)
 const NPC_PLACEMENTS: CharacterPlacement[] = [
   {
-    // Стол "менеджер спит за столом" — стоит там, где был игрок (рядом с левой стеной),
-    // и заменяет собой персонажа, который тут стоял
-    id: 'manager_sleep', // см. миссии (entities/mission)
+    id: 'manager_sleep',
     name: 'Manager (спит за столом)',
     url: '/models/manager_sleep/scene.gltf',
-    position: [-7.7, 0, 5.7], // место, где стоял гг
-    rotationY: Math.PI / 2, // спиной к левой стене (−X), лицом в комнату (+X) — как стоял гг
+    position: [-7.7, 0, 5.7],
+    rotationY: Math.PI / 2,
     targetHeight: MANAGER_DESK_HEIGHT,
-    animated: true, // единственная модель с включённой анимацией (сон)
+    animated: true, // единственная анимированная модель (сон)
   },
   {
     id: 'lead',
     name: 'LeadFrontend',
     url: '/models/LeadFrontend/scene.gltf',
-    position: [4, 0, -3], // оставлен на прежнем месте
+    position: [4, 0, -3],
     rotationY: -Math.PI / 4,
     targetHeight: NPC_HEIGHT,
   },
   {
-    // HR (Марина) — модель miku
     id: 'manager',
-    name: 'HR (Марина)',
+    name: 'HR (Мику)',
     url: '/models/miku/scene.gltf',
     position: [-5.1, 0, -3.9],
-    rotationY: 0, // лицом к лобби/игроку
+    rotationY: 0,
     targetHeight: NPC_HEIGHT,
   },
 ]
 
-// На каком расстоянии (метры) от NPC можно начать с ним разговор
-const INTERACTION_RADIUS = 2.8
-
-// ─────────────────────────────────────────────────────────────
+const INTERACTION_RADIUS = 2.8 // на каком расстоянии можно заговорить с NPC
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 // ── Состояние миссий ──
-const currentMissionIndex = ref(0) // какая миссия сейчас активна (0..MISSIONS.length)
-const epilogueDone = ref(false) // пройден ли финальный диалог у менеджера
-const dialogueOpen = ref(false) // открыт ли диалог
-const canInteract = ref(false) // игрок рядом с нужным NPC (можно нажать E)
+const currentMissionIndex = ref(0)
+const epilogueDone = ref(false)
+const dialogueOpen = ref(false)
+const canInteract = ref(false) // игрок рядом с нужным NPC
 
 const allMissionsDone = computed(() => currentMissionIndex.value >= MISSIONS.length)
 const gameComplete = computed(() => allMissionsDone.value && epilogueDone.value)
@@ -102,22 +79,20 @@ const activeMission = computed(() => {
 })
 
 // Связки с внутренностями сцены (назначаются в onMounted, когда всё создано).
-// Нужны, чтобы шаблон мог дёргать стабильные функции.
+// Назначаются в onMounted; нужны, чтобы шаблон дёргал стабильные функции
 let pauseMovement: (v: boolean) => void = () => {}
 let refreshQuestMarker: () => void = () => {}
 
-// Диалог завершён — закрываем и двигаем прогресс дальше
 function handleMissionCompleted() {
   dialogueOpen.value = false
   pauseMovement(false)
   if (currentMissionIndex.value < MISSIONS.length) {
-    currentMissionIndex.value++ // прошли обычный тест → следующая миссия
+    currentMissionIndex.value++ // следующая миссия
   } else {
-    epilogueDone.value = true // прошли финальный диалог → игра завершена
+    epilogueDone.value = true // прошли финал → игра завершена
   }
   refreshQuestMarker()
 }
-// Игрок закрыл диалог, не пройдя тест — просто отпускаем управление
 function handleDialogueClose() {
   dialogueOpen.value = false
   pauseMovement(false)
@@ -142,9 +117,8 @@ function handleResize(camera: THREE.PerspectiveCamera) {
 onMounted(async () => {
   if (!canvasRef.value) return
 
-  // ── Базовая настройка сцены, камеры и рендерера ──
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x87ceeb) // голубое небо
+  scene.background = new THREE.Color(0x87ceeb)
 
   const camera = new THREE.PerspectiveCamera(
     60,
@@ -152,33 +126,21 @@ onMounted(async () => {
     0.1,
     1000
   )
-  // Стартовая позиция камеры — сзади от точки спавна игрока, чтобы сразу был вид на стойку
-  camera.position.set(0, 3.5, 9)
+  camera.position.set(0, 3.5, 9) // сзади от точки спавна — сразу вид на стойку
 
   renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value, antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
-  // Ограничиваем pixel ratio (на retina-экранах x3 и больше не нужен — только лишняя нагрузка)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = true
 
   setupLights(scene)
 
-  // ── Офис ──
-  // Своего пола НЕ создаём: у модели офиса уже есть собственный пол.
-  // Если добавить ещё одну плоскость на той же высоте y=0, два пола начинают
-  // "мерцать" (z-fighting) — это и выглядит как дрожание экрана при движении.
+  // Свой пол не создаём — у офиса есть собственный, иначе z-fighting (дрожание).
   const officeGltf = await loadGltf(OFFICE_URL)
 
-  // Считаем габариты офиса ДО масштабирования, чтобы понять, во сколько раз его увеличить/уменьшить
   const officeRawSize = new THREE.Vector3()
   new THREE.Box3().setFromObject(officeGltf.scene).getSize(officeRawSize)
   const officeScale = OFFICE_TARGET_WIDTH / Math.max(officeRawSize.x, officeRawSize.z)
-
-  console.log(
-    '[GameScene] office — raw size:',
-    `x=${officeRawSize.x.toFixed(2)} y=${officeRawSize.y.toFixed(2)} z=${officeRawSize.z.toFixed(2)}`,
-    `→ scale=${officeScale.toFixed(4)} (ширина ${OFFICE_TARGET_WIDTH}м)`
-  )
 
   officeGltf.scene.scale.setScalar(officeScale)
   officeGltf.scene.traverse((child) => {
@@ -265,20 +227,19 @@ onMounted(async () => {
   }
   updateQuestMarker()
 
-  // ── Управление игроком + орбитальная камера (мышь) + границы + коллизия камеры об офис ──
   playerMovement = usePlayerMovement(
     player.object,
     camera,
     renderer.domElement,
     movementBounds,
-    officeGltf.scene
+    officeGltf.scene // collider для коллизии камеры
   )
 
-  // ── Начать диалог с текущим NPC (по клавише E) ──
+  // Клавиша E — начать разговор с NPC, если игрок рядом
   function tryStartDialogue() {
     if (canInteract.value && !dialogueOpen.value && activeMission.value) {
       dialogueOpen.value = true
-      playerMovement?.setPaused(true) // замораживаем ходьбу на время разговора
+      playerMovement?.setPaused(true)
     }
   }
   function onInteractKey(event: KeyboardEvent) {
@@ -295,13 +256,11 @@ onMounted(async () => {
   const clock = new THREE.Clock()
 
   function animate() {
-    // Ограничиваем delta сверху — если вкладка была неактивна (или это самый первый кадр),
-    // getDelta() может вернуть большой скачок, из-за которого игрок/камера дёрнутся
+    // Ограничиваем delta — после неактивной вкладки getDelta даёт большой скачок
     const delta = Math.min(clock.getDelta(), 0.1)
     playerMovement?.update(delta)
-    // Анимацию ходьбы игрока крутим только пока он движется (на месте — замираем)
+    // Ходьбу игрока анимируем только в движении, на месте — замираем
     if (player.mixer) player.mixer.timeScale = playerMovement?.isMoving() ? 1 : 0
-    // Проигрываем анимации персонажей (игрок при ходьбе, спящий менеджер и т.п.)
     for (const character of animatedCharacters) character.update(delta)
 
     // Табличка игрока следует за ним
@@ -316,8 +275,8 @@ onMounted(async () => {
 
     // ── Проверяем, рядом ли игрок с нужным NPC (можно ли начать диалог) ──
     const mission = activeMission.value
-    if (mission && !dialogueOpen.value) {
-      const target = npcObjectsById[mission.npcId]
+    const target = mission ? npcObjectsById[mission.npcId] : undefined
+    if (target && !dialogueOpen.value) {
       const dx = player.object.position.x - target.position.x
       const dz = player.object.position.z - target.position.z
       canInteract.value = dx * dx + dz * dz < INTERACTION_RADIUS * INTERACTION_RADIUS
@@ -350,7 +309,7 @@ onMounted(async () => {
   })
 })
 
-// Список функций очистки, заполняется в onMounted (т.к. там создаются ресурсы)
+// Функции очистки (слушатели, dispose), заполняются в onMounted
 const cleanupHandlers: Array<() => void> = []
 
 onUnmounted(() => {
@@ -372,7 +331,7 @@ onUnmounted(() => {
     WASD / стрелки — ходьба · зажмите мышь и двигайте — поворот камеры
   </div>
 
-  <!-- Цель: к кому идти, или сообщение о завершении (чёрная «таблетка»-акцент) — справа -->
+  <!-- Текущее задание / финал -->
   <div
     class="fixed top-3.5 right-3.5 max-w-[55vw] px-[18px] py-[9px] text-sm font-medium text-black bg-white rounded-full text-center shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-none"
   >

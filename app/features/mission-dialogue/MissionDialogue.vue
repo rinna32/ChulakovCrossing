@@ -2,49 +2,39 @@
 import { computed, ref } from 'vue'
 import type { Mission, MissionAnswer } from '~/entities/mission/missions'
 
-// Окно диалога одной миссии. Само ведёт игрока по этапам:
-// intro (реплики) → question (вопрос) → success (итог).
+// Диалог миссии ведёт игрока по этапам: intro → question → success.
 const props = defineProps<{
   mission: Mission
-  index: number // номер текущей миссии (с 0)
-  total: number // всего миссий
+  index: number
+  total: number
 }>()
 
 const emit = defineEmits<{
-  completed: [] // тест пройден (дали верный ответ и нажали «Готово»)
-  close: [] // игрок закрыл диалог, не пройдя тест
+  completed: [] // тест пройден
+  close: [] // закрыли, не пройдя
 }>()
 
-// Этап диалога
 const phase = ref<'intro' | 'question' | 'success'>('intro')
-// Какую реплику intro показываем
 const introIndex = ref(0)
-// Какой вопрос теста сейчас показываем
 const questionIndex = ref(0)
-// Был ли только что выбран неверный ответ (чтобы показать подсказку)
 const wrong = ref(false)
 
-// Текущий вопрос
 const currentQuestion = computed(() => props.mission.questions[questionIndex.value])
 
-// Варианты ответа в перемешанном порядке (в данных правильный всегда первый —
-// тасуем, чтобы его нельзя было угадать по позиции). computed зависит только от
-// currentQuestion, поэтому порядок стабилен, пока показан один и тот же вопрос.
+// Тасуем ответы — в данных правильный всегда первый. Порядок стабилен, пока
+// показан один вопрос (computed зависит только от currentQuestion).
 const shuffledAnswers = computed(() =>
   [...(currentQuestion.value?.answers ?? [])].sort(() => Math.random() - 0.5)
 )
 
-// Есть ли вообще тест (у эпилога вопросов нет)
 const hasQuestions = computed(() => props.mission.questions.length > 0)
 
-// Текст бейджа: для теста — номер и ценность, для диалога без теста — просто ценность
 const badge = computed(() =>
   hasQuestions.value
     ? `Тест ${props.index + 1}/${props.total} · ${props.mission.value}`
     : props.mission.value
 )
 
-// Кнопка «Далее» в репликах: следующая реплика, затем вопросы (или сразу итог, если теста нет)
 function nextIntro() {
   if (introIndex.value < props.mission.intro.length - 1) {
     introIndex.value++
@@ -53,14 +43,12 @@ function nextIntro() {
   }
 }
 
-// Выбор варианта ответа
 function pick(answer: MissionAnswer) {
   if (!answer.correct) {
-    wrong.value = true // неверно — даём попробовать ещё раз
+    wrong.value = true // даём попробовать ещё раз
     return
   }
   wrong.value = false
-  // Верно: либо следующий вопрос, либо итог теста
   if (questionIndex.value < props.mission.questions.length - 1) {
     questionIndex.value++
   } else {
@@ -70,7 +58,7 @@ function pick(answer: MissionAnswer) {
 </script>
 
 <template>
-  <!-- Затемнённый фон перекрывает сцену и ловит клики, чтобы они не уходили в канвас -->
+  <!-- Фон ловит клики, чтобы они не уходили в канвас -->
   <div class="fixed inset-0 z-20 flex items-end justify-center px-4 pb-10 bg-black/40">
     <div
       class="w-full max-w-[560px] bg-white text-ink rounded-card px-7 py-[26px] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"

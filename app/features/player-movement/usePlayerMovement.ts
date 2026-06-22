@@ -1,23 +1,21 @@
 import * as THREE from 'three'
 
-// Скорость перемещения игрока, метров в секунду
-const MOVE_SPEED = 3
+const MOVE_SPEED = 3 // м/с
 
-// ── Параметры орбитальной камеры (3-е лицо, как в реальных играх) ──
-const CAMERA_DISTANCE = 6.4 // на каком расстоянии камера висит от игрока
-const CAMERA_LOOK_HEIGHT = 1.2 // высота точки, на которую смотрит камера (≈ грудь героя)
-const CAMERA_INITIAL_PITCH = 0.5 // стартовый наклон камеры (рад): 0 = горизонт, больше = взгляд сверху
-const CAMERA_MIN_PITCH = 0.45 // нельзя опустить камеру слишком к горизонту (иначе видно "за стены")
-const CAMERA_MAX_PITCH = 1.25 // нельзя задрать выше "вид почти сверху"
-const MOUSE_SENSITIVITY = 0.0025 // чувствительность вращения камеры мышью
-const CAMERA_SMOOTHNESS = 14 // плавность следования камеры (больше = быстрее догоняет, меньше отставание)
+// Орбитальная камера от 3-го лица
+const CAMERA_DISTANCE = 6.4
+const CAMERA_LOOK_HEIGHT = 1.2 // точка, на которую смотрит камера (≈ грудь героя)
+const CAMERA_INITIAL_PITCH = 0.5
+const CAMERA_MIN_PITCH = 0.45 // ниже — видно «за стены»
+const CAMERA_MAX_PITCH = 1.25
+const MOUSE_SENSITIVITY = 0.0025
+const CAMERA_SMOOTHNESS = 14
 
-// ── Коллизия камеры (чтобы камера не пролезала сквозь стены, как в Genshin) ──
-const CAMERA_MIN_DISTANCE = 1.2 // ближе этого камера к игроку не подъедет
-const CAMERA_COLLISION_PADDING = 0.3 // на сколько отступить от стены, в которую упёрлась камера
-const CAMERA_MIN_HEIGHT = 0.6 // камера не опускается ниже этой высоты (не уходит под пол)
+// Коллизия камеры (как в Genshin: не пролезает сквозь стены)
+const CAMERA_MIN_DISTANCE = 1.2
+const CAMERA_COLLISION_PADDING = 0.3
+const CAMERA_MIN_HEIGHT = 0.6
 
-// Границы перемещения (мировые координаты XZ). Игрок и камера не выходят за них.
 export interface MovementBounds {
   minX: number
   maxX: number
@@ -25,10 +23,8 @@ export interface MovementBounds {
   maxZ: number
 }
 
-// Хук управления игроком: WASD/стрелки двигают героя относительно камеры,
-// мышь вращает орбитальную камеру вокруг него.
-// domElement — канвас (для захвата мыши), bounds — границы комнаты,
-// collider — объект офиса, об который камера будет "спотыкаться" (коллизия).
+// WASD/стрелки двигают героя относительно камеры, мышь (зажатая ЛКМ) вращает камеру.
+// collider — офис, об который «спотыкается» камера.
 export function usePlayerMovement(
   player: THREE.Object3D,
   camera: THREE.PerspectiveCamera,
@@ -36,29 +32,19 @@ export function usePlayerMovement(
   bounds?: MovementBounds,
   collider?: THREE.Object3D
 ) {
-  // Состояние нажатых клавиш
-  const keys = {
-    forward: false, // W / ArrowUp
-    backward: false, // S / ArrowDown
-    left: false, // A / ArrowLeft
-    right: false, // D / ArrowRight
-  }
+  const keys = { forward: false, backward: false, left: false, right: false }
 
-  // Углы орбитальной камеры:
-  // yaw — поворот вокруг игрока по горизонтали, pitch — наклон по вертикали
   let cameraYaw = 0
   let cameraPitch = CAMERA_INITIAL_PITCH
 
-  // ── Клавиатура ──
   function onKeyDown(event: KeyboardEvent) {
-    // Если это одна из наших клавиш — гасим стандартное поведение браузера
-    // (стрелки и пробел иначе прокручивают страницу, и по краям лезут белые полосы)
+    // preventDefault, чтобы стрелки/пробел не скроллили страницу
     if (setKeyState(event.code, true)) event.preventDefault()
   }
   function onKeyUp(event: KeyboardEvent) {
     setKeyState(event.code, false)
   }
-  // Возвращает true, если клавиша относится к управлению (тогда её нужно "перехватить")
+  // Возвращает true, если клавиша — управляющая
   function setKeyState(code: string, isPressed: boolean): boolean {
     switch (code) {
       case 'KeyW':
@@ -82,13 +68,11 @@ export function usePlayerMovement(
     }
   }
 
-  // ── Мышь: зажать ЛКМ и тянуть = вращать камеру ──
-  // Намеренно НЕ используем pointer lock (захват курсора): он капризен в Safari
-  // и оставляет курсор невидимым после Esc. Drag-вращение работает везде и курсор виден.
+  // Вращение камеры через drag, а не pointer lock: pointer lock капризен в Safari
+  // и прячет курсор после Esc.
   let isDragging = false
-
   function onMouseDown(event: MouseEvent) {
-    if (event.button !== 0) return // только левая кнопка
+    if (event.button !== 0) return
     isDragging = true
     domElement.style.cursor = 'grabbing'
   }
@@ -98,54 +82,46 @@ export function usePlayerMovement(
   }
   function onMouseMove(event: MouseEvent) {
     if (!isDragging) return
-    // movementX/Y — смещение мыши с прошлого события (работает и без pointer lock)
     cameraYaw -= event.movementX * MOUSE_SENSITIVITY
     cameraPitch += event.movementY * MOUSE_SENSITIVITY
     cameraPitch = Math.max(CAMERA_MIN_PITCH, Math.min(CAMERA_MAX_PITCH, cameraPitch))
   }
 
-  domElement.style.cursor = 'grab' // подсказываем, что сцену можно "схватить"
-
+  domElement.style.cursor = 'grab'
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   domElement.addEventListener('mousedown', onMouseDown)
   window.addEventListener('mouseup', onMouseUp)
   window.addEventListener('mousemove', onMouseMove)
 
-  // Двигается ли игрок прямо сейчас — по этому флагу включаем анимацию ходьбы модели
-  let moving = false
+  let moving = false // для анимации ходьбы
 
-  // Переиспользуемые объекты — чтобы не создавать новые каждый кадр
+  // Переиспользуем векторы, чтобы не аллоцировать каждый кадр
   const forwardDir = new THREE.Vector3()
   const rightDir = new THREE.Vector3()
   const moveDir = new THREE.Vector3()
-  const lookTarget = new THREE.Vector3() // точка, на которую смотрит камера
+  const lookTarget = new THREE.Vector3()
   const desiredCameraPosition = new THREE.Vector3()
-  const camDir = new THREE.Vector3() // направление от игрока к камере
+  const camDir = new THREE.Vector3()
   const raycaster = new THREE.Raycaster()
 
-  // Пауза управления (включается, когда открыт диалог миссии): игрок не ходит
-  let paused = false
+  let paused = false // на время диалога
   function setPaused(value: boolean) {
     paused = value
   }
 
-  // Удерживаем позицию игрока внутри комнаты
   function clampToBounds(pos: THREE.Vector3) {
     if (!bounds) return
     pos.x = Math.max(bounds.minX, Math.min(bounds.maxX, pos.x))
     pos.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, pos.z))
   }
 
-  // Вызывается каждый кадр игрового цикла с delta-time (в секундах)
   function update(delta: number) {
-    // Направления "вперёд"/"вправо" зависят от поворота камеры (yaw) —
-    // движение всегда относительно того, куда смотрит камера, как в реальных играх.
+    // «Вперёд»/«вправо» зависят от поворота камеры — движение относительно неё
     forwardDir.set(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw))
     rightDir.set(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw))
 
     moveDir.set(0, 0, 0)
-    // На паузе клавиши движения игнорируем (камера при этом продолжает следить за игроком)
     if (!paused) {
       if (keys.forward) moveDir.add(forwardDir)
       if (keys.backward) moveDir.sub(forwardDir)
@@ -158,13 +134,12 @@ export function usePlayerMovement(
       moveDir.normalize() // чтобы по диагонали не было быстрее
       player.position.x += moveDir.x * MOVE_SPEED * delta
       player.position.z += moveDir.z * MOVE_SPEED * delta
-      player.rotation.y = Math.atan2(moveDir.x, moveDir.z) // лицом по ходу движения
+      player.rotation.y = Math.atan2(moveDir.x, moveDir.z) // лицом по ходу
     }
 
-    // Жёстко держим игрока в пределах комнаты (каждый кадр, на всякий случай)
     clampToBounds(player.position)
 
-    // ── Желаемая позиция камеры по сферическим координатам вокруг игрока ──
+    // Желаемая позиция камеры по сфере вокруг игрока
     lookTarget.set(player.position.x, player.position.y + CAMERA_LOOK_HEIGHT, player.position.z)
     const horizontal = Math.cos(cameraPitch) * CAMERA_DISTANCE
     desiredCameraPosition.set(
@@ -173,9 +148,7 @@ export function usePlayerMovement(
       player.position.z + Math.cos(cameraYaw) * horizontal
     )
 
-    // ── Коллизия камеры: луч от героя к желаемой позиции камеры ──
-    // Если между героем и камерой есть стена — придвигаем камеру к этой стене,
-    // чтобы она не пролезала наружу (поведение как в Genshin при беге на стену).
+    // Если между героем и камерой стена — придвигаем камеру к ней
     if (collider) {
       camDir.copy(desiredCameraPosition).sub(lookTarget)
       const fullDist = camDir.length()
@@ -189,17 +162,14 @@ export function usePlayerMovement(
       }
     }
 
-    // ── Не выпускаем камеру за стены комнаты и под пол ──
     clampToBounds(desiredCameraPosition)
     if (desiredCameraPosition.y < CAMERA_MIN_HEIGHT) desiredCameraPosition.y = CAMERA_MIN_HEIGHT
 
-    // Плавно интерполируем позицию камеры к желаемой (lerp по delta-time)
     const lerpFactor = 1 - Math.exp(-CAMERA_SMOOTHNESS * delta)
     camera.position.lerp(desiredCameraPosition, lerpFactor)
     camera.lookAt(lookTarget)
   }
 
-  // Снимаем все слушатели при размонтировании
   function dispose() {
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)

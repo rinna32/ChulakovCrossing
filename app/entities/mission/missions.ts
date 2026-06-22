@@ -1,31 +1,25 @@
-// Данные миссий (тестов) — по одной на каждую ценность компании Chulakov.
-// Игрок проходит их по порядку, а в конце возвращается к менеджеру (эпилог).
-// Через вводные реплики (intro) игрок узнаёт о компании, людях и отделах.
-// Все NPC — девушки (женские имена и реплики).
+// Миссии-тесты по ценностям Chulakov. Проходятся по порядку, в конце — эпилог у менеджера.
 
-// Вариант ответа в вопросе
 export interface MissionAnswer {
   text: string
   correct: boolean
 }
 
-// Один вопрос теста
 export interface MissionQuestion {
   question: string
-  answers: MissionAnswer[] // варианты ответа (один правильный)
+  answers: MissionAnswer[]
 }
 
-// Одна миссия = вводный диалог + вопросы от одного NPC.
-// Если questions пуст — это просто диалог без теста (например, эпилог).
+// Если questions пуст — это диалог без теста (эпилог).
 export interface Mission {
-  id: string // уникальный id миссии
-  npcId: string // id NPC, к которому надо подойти (совпадает с id в NPC_PLACEMENTS)
-  npcName: string // имя персонажа (она)
-  npcRole: string // должность/отдел: Менеджер, TeamLead, HR
-  value: string // ценность компании, которую проверяет тест
-  intro: string[] // реплики NPC до вопросов (по одной, кнопкой «Далее»)
-  questions: MissionQuestion[] // вопросы теста (для эпилога — пусто)
-  success: string // что NPC говорит после всех правильных ответов / в конце диалога
+  id: string
+  npcId: string // совпадает с id в NPC_PLACEMENTS
+  npcName: string
+  npcRole: string
+  value: string
+  intro: string[]
+  questions: MissionQuestion[]
+  success: string
 }
 
 // Порядок в массиве = порядок прохождения

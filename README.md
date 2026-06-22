@@ -1,75 +1,135 @@
-# Nuxt Minimal Starter
+# CHULAKOV CROSSING
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Онбординг-игра для стажёра студии **Chulakov** — мини-игра в духе _Animal Crossing_: игрок ходит
+по 3D-офису, знакомится с командой и проходит тесты о ценностях компании
+(**ответственность**, **прозрачность**, **скорость**).
 
-## Setup
+Проект сделан как демо владения **Nuxt + Three.js + Tailwind** и архитектурой **FSD**
+(Feature-Sliced Design).
 
-Make sure to install dependencies:
+---
+
+## Стек
+
+- **Nuxt 4** (Vue 3, Vue Router) — фреймворк и роутинг
+- **Three.js** — 3D-сцена (чистый Three.js, без обёрток вроде TresJS)
+- **Tailwind CSS** (`@nuxtjs/tailwindcss`) — стили интерфейса
+- **TypeScript**
+- **FSD** — раскладка кода по слоям
+
+---
+
+## Запуск
+
+Нужен **Node.js 22.12+** (или 24.11+).
 
 ```bash
-# npm
+# установить зависимости
 npm install
 
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
+# запустить дев-сервер на http://localhost:3000
 npm run dev
 
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
+# собрать прод-сборку / превью
 npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
 npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+---
+
+## Как играть
+
+- Открой главное меню (`/`) → **Играть** (или сразу `/game`).
+- При входе всплывает окно с приветствием и правилами.
+
+**Управление:**
+
+| Действие | Клавиши / мышь |
+| --- | --- |
+| Ходить | `W` `A` `S` `D` или стрелки |
+| Поворот камеры | зажать **левую кнопку мыши** и вести |
+| Поговорить с коллегой | подойти к NPC с маркером над головой и нажать `E` |
+
+**Цель:** пройти по тесту у трёх коллег (над нужным висит золотой маркер, текущее задание —
+плашка справа вверху), затем вернуться к менеджеру за финалом. После прохождения игра
+просит связаться с наставником и оставить отзыв.
+
+---
+
+## Страницы
+
+| Маршрут | Что это |
+| --- | --- |
+| `/` | Главное меню (hero в стиле сайта chulakov.ru) |
+| `/game` | Игровая 3D-сцена (рендерится только в браузере, `ssr: false`) |
+| `/page2` | Страница «О студии Chulakov и её ценностях» |
+
+Шапка-навигация (`CHULAKOV CROSSING` + ссылки) живёт в `app/app.vue` и оборачивает все
+страницы, кроме `/game` (там полноэкранная сцена).
+
+---
+
+## Архитектура (FSD)
+
+Код разложен по слоям внутри `app/`:
+
+```
+app/
+├─ app.vue                       # корень + шапка-навигация
+├─ assets/css/main.css           # CSS-переменные, базовые стили, классы .btn/.card
+├─ pages/                        # маршруты: index (меню), game, page2
+├─ widgets/
+│  └─ game-scene/                # GameScene.client.vue — собирает всю игру:
+│                                #   renderer, сцена, камера, офис, NPC, игрок,
+│                                #   игровой цикл, маркеры, логика миссий
+├─ features/
+│  ├─ player-movement/           # usePlayerMovement — WASD + орбитальная камера,
+│  │                             #   коллизия камеры, границы комнаты
+│  ├─ mission-dialogue/          # MissionDialogue.vue — окно диалога/теста
+│  └─ game-intro/                # GameIntroModal.vue — приветствие и правила
+├─ entities/
+│  ├─ character/                 # Character.ts — загрузка модели, авто-масштаб,
+│  │                             #   анимации (миксер)
+│  └─ mission/                   # missions.ts — тексты диалогов, вопросы, ценности
+└─ shared/lib/three/             # переиспользуемые утилиты Three.js:
+                                 #   loadGltf, setupLights, makeLabelSprite
+```
+
+**Слои по зависимостям:** `pages → widgets → features → entities → shared`
+(верхний слой использует нижние, не наоборот).
+
+---
+
+## 3D-модели
+
+Лежат в `public/models/` (формат `.gltf`: `scene.gltf` + `scene.bin` + `textures/`).
+Отдаются статикой Nuxt по путям вида `/models/<имя>/scene.gltf`.
+
+- `office` — локация (офис)
+- `Manager` — модель игрока (есть анимация ходьбы)
+- `manager_sleep` — менеджер, спящий за столом (есть анимация сна)
+- `LeadFrontend`, `miku`, `isabelle` — персонажи-NPC
+
+Масштаб моделей подбирается **автоматически** по их bounding box (см. `Character.ts`,
+поле `targetHeight`) — задавать ручной scale не нужно.
+
+---
+
+## Где что менять
+
+- **Тексты диалогов, вопросы, имена и роли NPC** — `app/entities/mission/missions.ts`.
+- **Расстановка NPC, модель игрока, точка спавна, границы комнаты** — константы в начале
+  `app/widgets/game-scene/GameScene.client.vue` (`NPC_PLACEMENTS`, `PLAYER_START_*`, `ROOM_*`).
+- **Параметры камеры и скорость ходьбы** — константы в начале
+  `app/features/player-movement/usePlayerMovement.ts`.
+- **Цвета и типографика интерфейса** — CSS-переменные в `app/assets/css/main.css`
+  (привязаны к классам Tailwind через `tailwind.config.ts`: `bg-bg`, `text-ink` и т.п.).
+
+---
+
+## Заметки
+
+- Игровая сцена работает **только в браузере**: вынесена в `*.client.vue` и страница `/game`
+  помечена `ssr: false` — поэтому нет ошибки `window is not defined`.
+- Ресурсы Three.js очищаются при размонтировании (`cancelAnimationFrame`, `renderer.dispose()`,
+  снятие слушателей событий).

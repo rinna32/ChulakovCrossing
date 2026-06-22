@@ -1,19 +1,16 @@
 <script setup lang="ts">
-// Виджет лежит в app/widgets, а не в app/components, поэтому Nuxt не подхватит его
-// автоматически — импортируем явно.
+// Виджет из app/widgets Nuxt сам не импортит — подключаем явно
 import GameScene from '~/widgets/game-scene/GameScene.client.vue'
 import GameIntroModal from '~/features/game-intro/GameIntroModal.vue'
 
-// Приветственная модалка с правилами — показывается при каждом заходе на страницу игры
 const showIntro = ref(true)
 
-// .client.vue компонент рендерится только в браузере — на сервере его вообще не существует,
-// поэтому отдельный ssr:false здесь не обязателен, но не помешает для надёжности
+// Сцена только для браузера — Three.js не должен исполняться на сервере
 definePageMeta({
   ssr: false,
 })
 
-// Отключаем прокрутку страницы только пока открыта игра (класс снимется при уходе со страницы)
+// Прокрутку отключаем только на странице игры
 useHead({
   bodyAttrs: { class: 'no-scroll' },
 })
@@ -21,7 +18,7 @@ useHead({
 
 <template>
   <GameScene />
-  <!-- Кнопка возврата в меню: круглая со стрелкой — фирменный элемент сайта Chulakov -->
+  <!-- Кнопка возврата в меню -->
   <NuxtLink
     to="/"
     aria-label="На главную"
