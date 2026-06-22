@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import * as THREE from 'three'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { loadGltf } from '~/shared/lib/three/loadGltf'
 import { setupLights } from '~/shared/lib/three/setupLights'
 import { Character, type CharacterPlacement } from '~/entities/character/Character'
 import { usePlayerMovement } from '~/features/player-movement/usePlayerMovement'
+import { MISSIONS, EPILOGUE_MISSION } from '~/entities/mission/missions'
+import { makeLabelSprite } from '~/shared/lib/three/makeLabelSprite'
+import MissionDialogue from '~/features/mission-dialogue/MissionDialogue.vue'
 
 // ─────────────────────────────────────────────────────────────
 // КОНСТАНТЫ — двигайте эти числа, чтобы расставить модели по-другому
@@ -38,7 +41,7 @@ const NPC_HEIGHT = 1.75
 const MANAGER_DESK_HEIGHT = 2.2
 
 // Позиция игрока при старте игры [x, y, z], в метрах
-const PLAYER_START_POSITION: THREE.Vector3Tuple = [0, 0, 7]
+const PLAYER_START_POSITION: THREE.Vector3Tuple = [0, 0, 5.8]
 // Поворот игрока при старте (рад). Math.PI = лицом вглубь офиса (−Z, к стойке и NPC)
 const PLAYER_START_ROTATION = Math.PI
 
@@ -48,6 +51,7 @@ const NPC_PLACEMENTS: CharacterPlacement[] = [
   {
     // Стол "менеджер спит за столом" — стоит там, где был игрок (рядом с левой стеной),
     // и заменяет собой персонажа, который тут стоял
+    id: 'manager_sleep', // см. миссии (entities/mission)
     name: 'Manager (спит за столом)',
     url: '/models/manager_sleep/scene.gltf',
     position: [-7.7, 0, 5.7], // место, где стоял гг
@@ -56,6 +60,7 @@ const NPC_PLACEMENTS: CharacterPlacement[] = [
     animated: true, // единственная модель с включённой анимацией (сон)
   },
   {
+    id: 'lead',
     name: 'LeadFrontend',
     url: '/models/LeadFrontend/scene.gltf',
     position: [4, 0, -3], // оставлен на прежнем месте
@@ -63,14 +68,18 @@ const NPC_PLACEMENTS: CharacterPlacement[] = [
     targetHeight: NPC_HEIGHT,
   },
   {
-    // Вернули обычную модель менеджера на место, где раньше был стол
-    name: 'Manager',
-    url: '/models/Manager/scene.gltf',
+    // HR (Марина) — модель miku
+    id: 'manager',
+    name: 'HR (Марина)',
+    url: '/models/miku/scene.gltf',
     position: [-5.1, 0, -3.9],
     rotationY: 0, // лицом к лобби/игроку
     targetHeight: NPC_HEIGHT,
   },
 ]
+
+// На каком расстоянии (метры) от NPC можно начать с ним разговор
+const INTERACTION_RADIUS = 2.8
 
 // ─────────────────────────────────────────────────────────────
 
@@ -81,9 +90,52 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 // значения для position в NPC_PLACEMENTS. Когда расстановка готова, блок можно удалить.
 const playerCoords = ref('x: 0.0  z: 0.0')
 
+// ── Состояние миссий ──
+const currentMissionIndex = ref(0) // какая миссия сейчас активна (0..MISSIONS.length)
+const epilogueDone = ref(false) // пройден ли финальный диалог у менеджера
+const dialogueOpen = ref(false) // открыт ли диалог
+const canInteract = ref(false) // игрок рядом с нужным NPC (можно нажать E)
+
+const allMissionsDone = computed(() => currentMissionIndex.value >= MISSIONS.length)
+const gameComplete = computed(() => allMissionsDone.value && epilogueDone.value)
+
+// Активный диалог: либо текущая миссия, либо (после всех тестов) финал у менеджера
+const activeMission = computed(() => {
+  if (!allMissionsDone.value) return MISSIONS[currentMissionIndex.value]
+  if (!epilogueDone.value) return EPILOGUE_MISSION
+  return null
+})
+
+// Связки с внутренностями сцены (назначаются в onMounted, когда всё создано).
+// Нужны, чтобы шаблон мог дёргать стабильные функции.
+let pauseMovement: (v: boolean) => void = () => {}
+let refreshQuestMarker: () => void = () => {}
+
+// Диалог завершён — закрываем и двигаем прогресс дальше
+function handleMissionCompleted() {
+  dialogueOpen.value = false
+  pauseMovement(false)
+  if (currentMissionIndex.value < MISSIONS.length) {
+    currentMissionIndex.value++ // прошли обычный тест → следующая миссия
+  } else {
+    epilogueDone.value = true // прошли финальный диалог → игра завершена
+  }
+  refreshQuestMarker()
+}
+// Игрок закрыл диалог, не пройдя тест — просто отпускаем управление
+function handleDialogueClose() {
+  dialogueOpen.value = false
+  pauseMovement(false)
+}
+
 let renderer: THREE.WebGLRenderer | null = null
 let animationFrameId: number | null = null
-let playerMovement: { update: (delta: number) => void; dispose: () => void } | null = null
+let playerMovement: {
+  update: (delta: number) => void
+  dispose: () => void
+  setPaused: (v: boolean) => void
+  isMoving: () => boolean
+} | null = null
 
 function handleResize(camera: THREE.PerspectiveCamera) {
   if (!renderer) return
@@ -105,7 +157,8 @@ onMounted(async () => {
     0.1,
     1000
   )
-  camera.position.set(0, 3.2, 5.5)
+  // Стартовая позиция камеры — сзади от точки спавна игрока, чтобы сразу был вид на стойку
+  camera.position.set(0, 3.5, 9)
 
   renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value, antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -148,13 +201,14 @@ onMounted(async () => {
     maxZ: ROOM_MAX_Z,
   }
 
-  // ── Игрок (используем модель MainCharacter) ──
+  // ── Игрок: используем модель Manager — у неё есть готовая анимация ходьбы ──
   const player = new Character({
-    name: 'MainCharacter (игрок)',
-    url: '/models/MainCharacter/scene.gltf',
+    name: 'Игрок',
+    url: '/models/Manager/scene.gltf',
     position: PLAYER_START_POSITION,
     rotationY: PLAYER_START_ROTATION,
     targetHeight: PLAYER_HEIGHT,
+    animated: true, // анимацию ходьбы крутим только при движении (см. игровой цикл)
   })
   await player.load()
   scene.add(player.object)
@@ -163,13 +217,58 @@ onMounted(async () => {
   const animatedCharacters: Character[] = []
   if (player.mixer) animatedCharacters.push(player)
 
+  // Возвращает высоту "макушки" персонажа — чтобы повесить табличку над головой
+  function topOf(object: THREE.Object3D): number {
+    return new THREE.Box3().setFromObject(object).max.y
+  }
+
+  // ── Табличка над игроком (следует за ним каждый кадр) ──
+  const playerLabel = makeLabelSprite('Стажёр', 'фронтенд')
+  const playerLabelY = topOf(player.object) + 0.35
+  scene.add(playerLabel)
+
+  // Объекты NPC по их id — нужны миссиям (узнать позицию нужного NPC)
+  const npcObjectsById: Record<string, THREE.Object3D> = {}
+
   // ── NPC ──
   for (const placement of NPC_PLACEMENTS) {
     const npc = new Character(placement)
     await npc.load()
     scene.add(npc.object)
     if (npc.mixer) animatedCharacters.push(npc)
+    if (placement.id) npcObjectsById[placement.id] = npc.object
+
+    // Табличка с именем и ролью (берём из данных миссии этого NPC)
+    const mission = MISSIONS.find((m) => m.npcId === placement.id)
+    if (mission) {
+      const label = makeLabelSprite(mission.npcName, mission.npcRole)
+      label.position.set(npc.object.position.x, topOf(npc.object) + 0.35, npc.object.position.z)
+      scene.add(label)
+    }
   }
+
+  // ── Маркер задания: золотой "перевёрнутый кубик" над текущим NPC ──
+  const markerGeometry = new THREE.ConeGeometry(0.22, 0.5, 4)
+  const markerMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffc83d,
+    emissive: 0x7a5300,
+  })
+  const questMarker = new THREE.Mesh(markerGeometry, markerMaterial)
+  questMarker.rotation.x = Math.PI // остриём вниз
+  scene.add(questMarker)
+
+  // Перемещает маркер на текущего нужного NPC (или прячет, если игра пройдена)
+  function updateQuestMarker() {
+    const mission = activeMission.value
+    const target = mission ? npcObjectsById[mission.npcId] : undefined
+    if (!target) {
+      questMarker.visible = false
+      return
+    }
+    questMarker.visible = true
+    questMarker.position.set(target.position.x, 2.7, target.position.z)
+  }
+  updateQuestMarker()
 
   // ── Управление игроком + орбитальная камера (мышь) + границы + коллизия камеры об офис ──
   playerMovement = usePlayerMovement(
@@ -180,6 +279,23 @@ onMounted(async () => {
     officeGltf.scene
   )
 
+  // ── Начать диалог с текущим NPC (по клавише E) ──
+  function tryStartDialogue() {
+    if (canInteract.value && !dialogueOpen.value && activeMission.value) {
+      dialogueOpen.value = true
+      playerMovement?.setPaused(true) // замораживаем ходьбу на время разговора
+    }
+  }
+  function onInteractKey(event: KeyboardEvent) {
+    if (event.code === 'KeyE') tryStartDialogue()
+  }
+  window.addEventListener('keydown', onInteractKey)
+  cleanupHandlers.push(() => window.removeEventListener('keydown', onInteractKey))
+
+  // Связываем стабильные обработчики из шаблона с внутренними функциями сцены
+  pauseMovement = (v: boolean) => playerMovement?.setPaused(v)
+  refreshQuestMarker = updateQuestMarker
+
   // ── Игровой цикл через delta-time (THREE.Clock) ──
   const clock = new THREE.Clock()
 
@@ -188,8 +304,32 @@ onMounted(async () => {
     // getDelta() может вернуть большой скачок, из-за которого игрок/камера дёрнутся
     const delta = Math.min(clock.getDelta(), 0.1)
     playerMovement?.update(delta)
-    // Проигрываем анимации персонажей (например, "менеджер спит")
+    // Анимацию ходьбы игрока крутим только пока он движется (на месте — замираем)
+    if (player.mixer) player.mixer.timeScale = playerMovement?.isMoving() ? 1 : 0
+    // Проигрываем анимации персонажей (игрок при ходьбе, спящий менеджер и т.п.)
     for (const character of animatedCharacters) character.update(delta)
+
+    // Табличка игрока следует за ним
+    playerLabel.position.set(player.object.position.x, playerLabelY, player.object.position.z)
+
+    // ── Маркер задания: лёгкое покачивание и вращение над текущим NPC ──
+    if (questMarker.visible) {
+      const t = clock.getElapsedTime()
+      questMarker.position.y = 2.7 + Math.sin(t * 3) * 0.12
+      questMarker.rotation.y += delta * 1.5
+    }
+
+    // ── Проверяем, рядом ли игрок с нужным NPC (можно ли начать диалог) ──
+    const mission = activeMission.value
+    if (mission && !dialogueOpen.value) {
+      const target = npcObjectsById[mission.npcId]
+      const dx = player.object.position.x - target.position.x
+      const dz = player.object.position.z - target.position.z
+      canInteract.value = dx * dx + dz * dz < INTERACTION_RADIUS * INTERACTION_RADIUS
+    } else {
+      canInteract.value = false
+    }
+
     // Обновляем индикатор координат и поворота игрока (временный помощник для расстановки NPC).
     // Поворот показываем в градусах; в коде rotationY задаётся в радианах (рад = град × π / 180).
     const deg = Math.round((player.object.rotation.y * 180) / Math.PI)
@@ -237,6 +377,36 @@ onUnmounted(() => {
   <canvas ref="canvasRef" class="game-canvas" />
   <!-- Подсказка по управлению -->
   <div class="hint-hud">WASD / стрелки — ходьба · зажмите мышь и двигайте — поворот камеры</div>
+
+  <!-- Цель: к кому идти, или сообщение о завершении -->
+  <div class="objective-hud">
+    <template v-if="!allMissionsDone && activeMission">
+      Задание {{ currentMissionIndex + 1 }}/{{ MISSIONS.length }}: поговори с
+      «{{ activeMission.npcName }}» — {{ activeMission.npcRole }} ({{ activeMission.value }})
+    </template>
+    <template v-else-if="!gameComplete && activeMission">
+      Все тесты пройдены! Вернись к «{{ activeMission.npcName }}» ({{ activeMission.npcRole }}) — она ждёт.
+    </template>
+    <template v-else>
+      ✓ Готово! Свяжись с наставником, сообщи о прохождении и оставь отзыв.
+    </template>
+  </div>
+
+  <!-- Подсказка «нажми E», когда игрок рядом с нужным NPC -->
+  <div v-if="canInteract && !dialogueOpen" class="interact-hud">
+    Нажми <b>E</b>, чтобы поговорить
+  </div>
+
+  <!-- Диалог (миссия или финал) -->
+  <MissionDialogue
+    v-if="dialogueOpen && activeMission"
+    :mission="activeMission"
+    :index="currentMissionIndex"
+    :total="MISSIONS.length"
+    @completed="handleMissionCompleted"
+    @close="handleDialogueClose"
+  />
+
   <!-- Временный индикатор координат игрока для расстановки NPC -->
   <div class="coords-hud">{{ playerCoords }}</div>
 </template>
@@ -266,7 +436,7 @@ onUnmounted(() => {
 
 .hint-hud {
   position: fixed;
-  left: 12px;
+  left: 64px; /* правее кнопки «домой» */
   top: 12px;
   padding: 6px 10px;
   font-family: sans-serif;
@@ -275,5 +445,40 @@ onUnmounted(() => {
   background: rgba(0, 0, 0, 0.5);
   border-radius: 6px;
   pointer-events: none;
+}
+
+.objective-hud {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90vw;
+  padding: 8px 14px;
+  font-family: sans-serif;
+  font-size: 14px;
+  color: #fff;
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid rgba(243, 167, 18, 0.6);
+  border-radius: 8px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.interact-hud {
+  position: fixed;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  font-family: sans-serif;
+  font-size: 15px;
+  color: #fff;
+  background: rgba(20, 20, 20, 0.75);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.interact-hud b {
+  color: #f3a712;
 }
 </style>

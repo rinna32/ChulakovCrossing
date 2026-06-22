@@ -1,0 +1,11 @@
+Model Information:
+* title:	Hatsune Miku - Animal Crossing Style
+* source:	https://sketchfab.com/3d-models/hatsune-miku-animal-crossing-style-dce7a73af11f44d08537072103d13956
+* author:	Miaru3d (https://sketchfab.com/miaru3d)
+
+Model License:
+* license type:	CC-BY-ND-4.0 (http://creativecommons.org/licenses/by-nd/4.0/)
+* requirements:	Author must be credited. Modified versions can not be distributed. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Hatsune Miku - Animal Crossing Style" (https://sketchfab.com/3d-models/hatsune-miku-animal-crossing-style-dce7a73af11f44d08537072103d13956) by Miaru3d (https://sketchfab.com/miaru3d) licensed under CC-BY-ND-4.0 (http://creativecommons.org/licenses/by-nd/4.0/)

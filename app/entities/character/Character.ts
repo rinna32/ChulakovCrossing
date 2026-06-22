@@ -3,6 +3,7 @@ import { loadGltf } from '~/shared/lib/three/loadGltf'
 
 // Описание того, как разместить персонажа на сцене.
 export interface CharacterPlacement {
+  id?: string // идентификатор NPC (нужен миссиям, чтобы знать, к кому подходить)
   url: string // путь к scene.gltf
   position: THREE.Vector3Tuple // [x, y, z], в метрах
   rotationY: number // поворот вокруг вертикальной оси, в радианах

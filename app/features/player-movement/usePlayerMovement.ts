@@ -112,6 +112,9 @@ export function usePlayerMovement(
   window.addEventListener('mouseup', onMouseUp)
   window.addEventListener('mousemove', onMouseMove)
 
+  // Двигается ли игрок прямо сейчас — по этому флагу включаем анимацию ходьбы модели
+  let moving = false
+
   // Переиспользуемые объекты — чтобы не создавать новые каждый кадр
   const forwardDir = new THREE.Vector3()
   const rightDir = new THREE.Vector3()
@@ -120,6 +123,12 @@ export function usePlayerMovement(
   const desiredCameraPosition = new THREE.Vector3()
   const camDir = new THREE.Vector3() // направление от игрока к камере
   const raycaster = new THREE.Raycaster()
+
+  // Пауза управления (включается, когда открыт диалог миссии): игрок не ходит
+  let paused = false
+  function setPaused(value: boolean) {
+    paused = value
+  }
 
   // Удерживаем позицию игрока внутри комнаты
   function clampToBounds(pos: THREE.Vector3) {
@@ -136,12 +145,16 @@ export function usePlayerMovement(
     rightDir.set(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw))
 
     moveDir.set(0, 0, 0)
-    if (keys.forward) moveDir.add(forwardDir)
-    if (keys.backward) moveDir.sub(forwardDir)
-    if (keys.right) moveDir.add(rightDir)
-    if (keys.left) moveDir.sub(rightDir)
+    // На паузе клавиши движения игнорируем (камера при этом продолжает следить за игроком)
+    if (!paused) {
+      if (keys.forward) moveDir.add(forwardDir)
+      if (keys.backward) moveDir.sub(forwardDir)
+      if (keys.right) moveDir.add(rightDir)
+      if (keys.left) moveDir.sub(rightDir)
+    }
 
-    if (moveDir.lengthSq() > 0) {
+    moving = moveDir.lengthSq() > 0
+    if (moving) {
       moveDir.normalize() // чтобы по диагонали не было быстрее
       player.position.x += moveDir.x * MOVE_SPEED * delta
       player.position.z += moveDir.z * MOVE_SPEED * delta
@@ -196,5 +209,5 @@ export function usePlayerMovement(
     domElement.style.cursor = ''
   }
 
-  return { update, dispose }
+  return { update, dispose, setPaused, isMoving: () => moving }
 }
