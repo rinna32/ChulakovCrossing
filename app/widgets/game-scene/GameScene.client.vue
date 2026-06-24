@@ -9,7 +9,7 @@ import { MISSIONS, EPILOGUE_MISSION } from '~/entities/mission/missions'
 import { makeLabelSprite } from '~/shared/lib/three/makeLabelSprite'
 import MissionDialogue from '~/features/mission-dialogue/MissionDialogue.vue'
 
-// ── Константы сцены: меняй, чтобы переставить модели ──
+// ── Константы сцены: чтобы переставить модели ──
 
 const OFFICE_URL = '/models/office/scene.gltf'
 const OFFICE_TARGET_WIDTH = 24 // ширина офиса в метрах (масштаб считается сам)

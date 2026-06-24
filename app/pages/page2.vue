@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// Страница «О студии Chulakov и её ценностях».
-// Шапка приходит из app.vue, поэтому здесь только контент.
 </script>
 
 <template>
